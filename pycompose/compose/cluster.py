@@ -6,11 +6,10 @@ import os
 import sys
 from functools import partial
 
-from ansible.template import Templar
+from pycompose.compat import compat_string_types
+from pycompose.ansible import ansible_tempar, ansible_unwrap
 
 from pycompose.errors import ContextVarGeneratorError, GroupVarGeneratorError, HostVarGeneratorError
-
-from pycompose.compose import ansible_unwrap
 from pycompose.compose.nodegroup import NodeGroup
 
 class Cluster:
@@ -58,7 +57,7 @@ class Cluster:
         self._node_groups = {}
 
         # Creates the ansible templar
-        self._ansible_templar = Templar(loader)
+        self._ansible_templar = ansible_tempar(loader)
 
     def add_node_group(self, name, instances):
         '''Adds a group of nodes to the cluster.
@@ -86,6 +85,64 @@ class Cluster:
 
         return self._node_groups[name]
 
+    def compose(self):
+        '''Composes the cluster by generating nodes - VM instances - in each group of nodes '''
+        ## Phase1: Node creation
+        # All NodeGroups are composed creating a unique list of nodes
+        nodes = self._get_nodes()
+
+        ## Phase2: Creates inventory for Ansible provisioning
+        # Create a list of ansible_groups, with related nodes
+        ansible_groups = self._get_ansible_groups(nodes)
+
+        ## Phase3: Creates ansible_group_vars and ansible_host_vars file
+        # context_vars are variables shared between all groups/hosts generators.
+        context_vars = self._get_context_vars(ansible_groups)
+        # generate ansible_group_vars
+        ansible_group_vars = self._get_ansible_group_vars(ansible_groups, context_vars)
+        # generate ansible_host_vars
+        ansible_host_vars = self._get_ansible_host_vars(nodes, context_vars)
+
+        ## Phase4: Creates ansible_inventory
+        inventory = self._get_ansible_inventory(ansible_groups)
+
+        return nodes, inventory, ansible_group_vars, ansible_host_vars
+
+    def __setattr__(self, name, value):
+        if name.startswith("_"):
+            self.__dict__[name] = value
+            return
+
+        #TODO: improve/centralize validation
+        if name in ['name']:
+            if not (isinstance(value, compat_string_types) or value is None) :
+                raise TypeError("Attribute '%s' accepts only string values or empty." % (name))
+
+        elif name in ['box', 'domain', 'ansible_playbook_path']:
+
+            if not isinstance(value, compat_string_types):
+                raise TypeError("Attribute '%s' accepts only string values." % (name))
+
+        elif name in ['ansible_context_vars', 'ansible_group_vars', 'ansible_host_vars']:
+            if not isinstance(value, dict):
+                raise TypeError("Attribute '%s' accepts only object values." % (name))
+            else:
+                for k1, v1 in value.iteritems():
+                    if not isinstance(k1, compat_string_types):
+                        raise TypeError("Invalid value for attribute '%s'. Check documentation." % (name))
+                    if not isinstance(v1, dict):
+                        raise TypeError("Invalid value for attribute '%s'. Check documentation." % (name))
+                    else:
+                        for k2, v2 in v1.iteritems():
+                            if not isinstance(k2, compat_string_types):
+                                raise TypeError("Invalid value for attribute '%s'. Check documentation." % (name))
+                            if not isinstance(v1, dict):
+                                raise TypeError("Invalid value for attribute '%s'. Check documentation." % (name))
+        else:
+            raise AttributeError ("Attribute '%s' does't exists" % (name))
+
+        self.__dict__[name] = value
+
     def _get_nodes(self):
         '''Gets the list of nodes by composing all the nodegroups.'''
 
@@ -112,6 +169,20 @@ class Cluster:
                 ansible_groups[ansible_group].append(node)
 
         return ansible_groups
+
+    def _get_ansible_inventory(self, ansible_groups):
+        '''Gets the ansible to be used when provisioning VMs with vagrant/ansible.
+
+        Keyword arguments:
+        ansible_groups  -- The list of ansible_groups, each one with its own list of nodes.
+        '''
+
+        inventory = {}
+        for ansible_group, ansible_group_nodes in ansible_groups.iteritems():
+            if ansible_group not in inventory:
+                inventory[ansible_group] = [node.hostname for node in ansible_group_nodes]
+
+        return inventory
 
     def _get_context_vars(self, ansible_groups):
         '''Gets the context_vars to be used when generating group_vars and host_vars.
@@ -222,23 +293,3 @@ class Cluster:
                         ansible_host_vars[node.hostname][var_name] = value
 
         return ansible_host_vars
-
-    def compose(self):
-        '''Composes the cluster by generating nodes - VM instances - in each group of nodes '''
-        ## Phase1: Node creation
-        # All NodeGroups are composed creating a unique list of nodes
-        nodes = self._get_nodes()
-
-        ## Phase2: Creates inventory for Ansible provisioning
-        # Create a list of ansible_groups, with related nodes
-        ansible_groups = self._get_ansible_groups(nodes)
-
-        ## Phase3: Creates ansible_group_vars and ansible_host_vars file
-        # context_vars are variables shared between all groups/hosts generators.
-        context_vars = self._get_context_vars(ansible_groups)
-        # generate ansible_group_vars
-        ansible_group_vars = self._get_ansible_group_vars(ansible_groups, context_vars)
-        # generate ansible_host_vars
-        ansible_host_vars = self._get_ansible_host_vars(nodes, context_vars)
-
-        return nodes, ansible_group_vars, ansible_host_vars

@@ -38,3 +38,22 @@ class HostVarGeneratorError(ComposeError):
 
     def __init__(self, host, var_name, message):
         self.message = 'Error generating host var "%s" for host "%s" : %s' % (var_name, host, message)
+
+
+class PlaybookLoadError(ComposeError):
+    ''' Class for handling errors raised when loading playbook. '''
+
+    def __init__(self, filename, message):
+        self.message = 'Error loading playbook data from "%s": %s' % (filename, message)
+
+class PlaybookParseError(ComposeError):
+    ''' Class for handling errors raised when parsing playbook. '''
+
+    def __init__(self, message):
+        self.message = 'Error parsing playbook: %s' % (message)
+
+class PlaybookCompileError(ComposeError):
+    ''' Class for handling errors raised when parsing playbook. '''
+
+    def __init__(self, cluster, message):
+        self.message = 'Error compiling cluster "%s": %s ' % (cluster, message)

@@ -1,19 +1,20 @@
+# -*- coding: utf-8 -*-
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 import json
+from unittest import TestCase
 
-from ansible.compat.tests import unittest
-from ansible.parsing.dataloader import DataLoader
+from pycompose.ansible import ansible_loader
 
 from pycompose.compose.cluster import Cluster
 
 setup_done = False
 
-class TestCluster(unittest.TestCase):
+class TestCluster(TestCase):
 
     def setUp(self):
-        dataloader = DataLoader()
+        dataloader = ansible_loader()
         self.myCluster = Cluster("myCluster", loader = dataloader)
 
         g1 = self.myCluster.add_node_group("nodegroup_1", 1)
@@ -24,6 +25,10 @@ class TestCluster(unittest.TestCase):
 
         self.nodes = self.myCluster._get_nodes()
         self.ansible_groups = self.myCluster._get_ansible_groups(self.nodes)
+
+    def test_attributes_validation(self):
+        #TODO: test validation
+        pass
 
     def test_add_nodes(self):
         # assert expected node groups are in the cluster

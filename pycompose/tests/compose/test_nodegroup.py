@@ -1,17 +1,17 @@
+# -*- coding: utf-8 -*-
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 from nose import tools
-from ansible.compat.six import integer_types
-from ansible.compat.tests import unittest
-from ansible.parsing.dataloader import DataLoader
-from ansible.template import Templar
+from unittest import TestCase
+
+from pycompose.compat import compat_integer_types
+from pycompose.ansible import ansible_loader, ansible_tempar
 
 from pycompose.errors import ValueGeneratorError, ValueGeneratorTypeError
-
 from pycompose.compose.nodegroup import NodeGroup
 
-class TestNodeGroup(unittest.TestCase):
+class TestNodeGroup(TestCase):
 
     def setUp(self):
         # a sample cluster
@@ -31,8 +31,12 @@ class TestNodeGroup(unittest.TestCase):
         )
 
         #creates the ansible templar
-        dataloader = DataLoader()
-        self.templar = Templar(dataloader)
+        dataloader = ansible_loader()
+        self.templar = ansible_tempar(dataloader)
+
+    def test_attributes_validation(self):
+        #TODO: test validation
+        pass
 
     def test_maybeprefix(self):
         # none or empty cluster names does not prefix
@@ -62,7 +66,7 @@ class TestNodeGroup(unittest.TestCase):
         self.assertRaises(ValueGeneratorError, self.ng._generate, self.templar, "myVar", "{{unknown_var}}", 0)
 
         # generate raise errors when generated value does not match expected type
-        self.assertRaises(ValueGeneratorTypeError, self.ng._generate, self.templar, "myVar", "s", 0, type = integer_types)
+        self.assertRaises(ValueGeneratorTypeError, self.ng._generate, self.templar, "myVar", "s", 0, type = compat_integer_types)
 
     def test_compose(self):
         #compose generates expected nodes (and generates all attributes values)

@@ -1,0 +1,23 @@
+---
+mesos:
+  box: fp/centos7
+  master:
+    instances: 3
+    memory: 256
+    ansible_groups:
+      - zookeeper
+      - mesos-master
+
+  slave:
+    instances: 2
+    memory: 256
+    ansible_groups:
+      - mesos-slave
+
+  registry:
+    instances: 1
+    memory: "{{ 1024 + 256 }}"
+    aliases:
+      -  myregistry.vagrant
+    ansible_groups:
+      - docker-registry

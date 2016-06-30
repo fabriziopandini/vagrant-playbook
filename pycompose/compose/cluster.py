@@ -215,7 +215,7 @@ class Cluster:
                         raise ContextVarGeneratorError(ansible_group, var_name, e.message), None, sys.exc_info()[2]
 
                     # store the generated context var
-                    context_vars[var_name] = value
+                    context_vars[var_name] = ansible_unwrap(value)
 
         return context_vars
 
@@ -253,7 +253,7 @@ class Cluster:
                         raise GroupVarGeneratorError(ansible_group, var_name, e.message), None, sys.exc_info()[2]
 
                     # store the generated ansible_group_var
-                    ansible_group_vars[ansible_group][var_name] = value
+                    ansible_group_vars[ansible_group][var_name] = ansible_unwrap(value)
 
         return ansible_group_vars
 
@@ -290,6 +290,6 @@ class Cluster:
                             raise HostVarGeneratorError(node.hostname, var_name, e.message), None, sys.exc_info()[2]
 
                         # store the generated ansible_host_var
-                        ansible_host_vars[node.hostname][var_name] = value
+                        ansible_host_vars[node.hostname][var_name] = ansible_unwrap(value)
 
         return ansible_host_vars

@@ -72,6 +72,24 @@ class TestCluster(TestCase):
         self.assertIn("myCluster-nodegroup_21", hostnames)
         self.assertIn("myCluster-nodegroup_22", hostnames)
 
+    def test_get_ansible_inventory(self):
+        inventory = self.myCluster._get_ansible_inventory(self.ansible_groups)
+
+        # assert expected nodes are in the cluster
+        self.assertEqual(len(inventory), 2)
+
+        # ansiblegroup_A (with related nodes)
+        self.assertIn("ansiblegroup_A", inventory)
+        self.assertEqual(len(inventory["ansiblegroup_A"]), 1)
+        self.assertIn("myCluster-nodegroup_11", inventory["ansiblegroup_A"])
+
+        # ansiblegroup_B (with related nodes)
+        self.assertIn("ansiblegroup_B", inventory)
+        self.assertEqual(len(inventory["ansiblegroup_B"]), 3)
+        self.assertIn("myCluster-nodegroup_11", inventory["ansiblegroup_B"])
+        self.assertIn("myCluster-nodegroup_21", inventory["ansiblegroup_B"])
+        self.assertIn("myCluster-nodegroup_22", inventory["ansiblegroup_B"])
+
     def test_get_ansible_groups(self):
         '''_get_ansible_groups re-arrange nodes into ansible_groups'''
 
@@ -194,7 +212,7 @@ class TestCluster(TestCase):
             }
         }
 
-        nodes, ansible_group_vars, ansible_host_vars = self.myCluster.compose()
+        nodes, inventory, ansible_group_vars, ansible_host_vars = self.myCluster.compose()
 
         # assert expected nodes are available
         self.assertEqual(len(nodes), 3)

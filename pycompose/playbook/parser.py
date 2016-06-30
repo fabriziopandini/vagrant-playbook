@@ -133,7 +133,16 @@ class Parser:
                     'group_index' : n.group_index
                 }
 
-            #if len(ansible_group_vars)>0:
+            if len(inventory)>0:
+                x['ansible'] = {}
+
+                x['ansible']['inventory'] = inventory
+
+                if len(ansible_group_vars)>0:
+                    x['ansible']['group_vars'] = ansible_group_vars
+
+                if len(ansible_host_vars)>0:
+                    x['ansible']['host_vars'] = ansible_host_vars
 
 
             #    if n.hostname in ansible_host_vars:

@@ -2,17 +2,11 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
-sample_compile_base = '''
----
-mesos:
-    zookeeper:
-        instances: 3
-'''
-
-sample_compile_base = '''
+sample_yaml = '''
 ---
 mesos:
     nodegroup1:
+        instances: 1
         ansible_groups:
           - ansible_groups1
           - ansible_groups2

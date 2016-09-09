@@ -6,7 +6,7 @@ from ansible.utils.unicode import to_str
 from ansible.template import Templar
 from ansible.parsing.dataloader import DataLoader
 
-from pycompose.compat import compat_text_type
+from vagrantplaybook.compat import compat_text_type
 
 ansible_tempar = Templar
 ansible_loader = DataLoader

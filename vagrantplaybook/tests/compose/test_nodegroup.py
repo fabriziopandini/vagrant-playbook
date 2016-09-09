@@ -5,11 +5,11 @@ __metaclass__ = type
 from nose import tools
 from unittest import TestCase
 
-from pycompose.compat import compat_integer_types
-from pycompose.ansible import ansible_loader, ansible_tempar
+from vagrantplaybook.compat import compat_integer_types
+from vagrantplaybook.ansible import ansible_loader, ansible_tempar
 
-from pycompose.errors import ValueGeneratorError, ValueGeneratorTypeError
-from pycompose.compose.nodegroup import NodeGroup
+from vagrantplaybook.errors import ValueGeneratorError, ValueGeneratorTypeError
+from vagrantplaybook.compose.nodegroup import NodeGroup
 
 class TestNodeGroup(TestCase):
 

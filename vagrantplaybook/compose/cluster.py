@@ -6,11 +6,11 @@ import os
 import sys
 from functools import partial
 
-from pycompose.compat import compat_string_types
-from pycompose.ansible import ansible_tempar, ansible_unwrap
+from vagrantplaybook.compat import compat_string_types
+from vagrantplaybook.ansible import ansible_tempar, ansible_unwrap
 
-from pycompose.errors import ContextVarGeneratorError, GroupVarGeneratorError, HostVarGeneratorError
-from pycompose.compose.nodegroup import NodeGroup
+from vagrantplaybook.errors import ContextVarGeneratorError, GroupVarGeneratorError, HostVarGeneratorError
+from vagrantplaybook.compose.nodegroup import NodeGroup
 
 class Cluster:
     '''
@@ -37,11 +37,6 @@ class Cluster:
         # The network domain to wich the cluster belongs.
         # It will be used for computing nodes fqdn.
         self.domain = 'vagrant'
-
-        # The root path for ansible playbook; it is used as a base path for computing
-        #  ansible_group_vars and ansible_host_vars.
-        # It defaults to current directory/provisioning
-        self.ansible_playbook_path = os.path.join(os.getcwd(), 'provisioning')
 
         # A dictionary, that will be used to store context vars to be passed
         #  to value_generators when composing nodes
@@ -106,7 +101,7 @@ class Cluster:
         ## Phase4: Creates ansible_inventory
         inventory = self._get_ansible_inventory(ansible_groups)
 
-        return nodes, inventory, ansible_group_vars, ansible_host_vars
+        return self._get_nodesmap(nodes), inventory, ansible_group_vars, ansible_host_vars
 
     def __setattr__(self, name, value):
         if name.startswith("_"):
@@ -118,7 +113,7 @@ class Cluster:
             if not (isinstance(value, compat_string_types) or value is None) :
                 raise TypeError("Attribute '%s' accepts only string values or empty." % (name))
 
-        elif name in ['box', 'domain', 'ansible_playbook_path']:
+        elif name in ['box', 'domain']:
 
             if not isinstance(value, compat_string_types):
                 raise TypeError("Attribute '%s' accepts only string values." % (name))
@@ -151,6 +146,28 @@ class Cluster:
             nodes.extend(group.compose(self._ansible_templar, self.name, self.domain, len(nodes) ))
 
         return nodes
+
+    def _get_nodesmap(self, nodes):
+        '''Gets the list of nodes as a map format.'''
+
+        nodesmap = []
+        for node in nodes:
+            nodesmap.append ({ node.boxname: {
+                'box'            : node.box,
+                'boxname'        : node.boxname,
+                'hostname'       : node.hostname,
+                'fqdn'           : node.fqdn,
+                'aliases'        : node.aliases,
+                'ip'             : node.ip,
+                'cpus'           : node.cpus,
+                'memory'         : node.memory,
+                'ansible_groups' : node.ansible_groups,
+                'attributes'     : node.attributes,
+                'index'          : node.index,
+                'group_index'    : node.group_index
+            }})
+
+        return nodesmap
 
     def _get_ansible_groups(self, nodes):
         '''Gets the ansible groups, each with its own list of nodes.

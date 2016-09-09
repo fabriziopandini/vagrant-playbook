@@ -5,9 +5,9 @@ __metaclass__ = type
 import json
 from unittest import TestCase
 
-from pycompose.ansible import ansible_loader
+from vagrantplaybook.ansible import ansible_loader
 
-from pycompose.compose.cluster import Cluster
+from vagrantplaybook.compose.cluster import Cluster
 
 setup_done = False
 
@@ -188,7 +188,7 @@ class TestCluster(TestCase):
         self.assertEqual(len(host_vars["myCluster-nodegroup_22"]), 1)
         self.assertEqual(host_vars["myCluster-nodegroup_22"]["var2"], "172.31.1.102")
 
-    def test_compose(self):
+    def test_execute(self):
         '''compose generate the cluster'''
 
         # defines a sample set of ansible_group_vars generators
@@ -212,10 +212,12 @@ class TestCluster(TestCase):
             }
         }
 
-        nodes, inventory, ansible_group_vars, ansible_host_vars = self.myCluster.compose()
+        nodesmap, inventory, ansible_group_vars, ansible_host_vars = self.myCluster.compose()
+
+        print (nodesmap)
 
         # assert expected nodes are available
-        self.assertEqual(len(nodes), 3)
+        self.assertEqual(len(nodesmap), 3)
         # assert expected ansible_group_vars are available
         self.assertEqual(len(ansible_group_vars), 2)
         # assert expected ansible_host_vars are available

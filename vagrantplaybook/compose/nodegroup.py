@@ -5,11 +5,11 @@ __metaclass__ = type
 import sys
 from types import NoneType
 
-from pycompose.compat import compat_integer_types
-from pycompose.ansible import ansible_unwrap
+from vagrantplaybook.compat import compat_integer_types
+from vagrantplaybook.ansible import ansible_unwrap
 
-from pycompose.errors import ValueGeneratorError, ValueGeneratorTypeError
-from pycompose.compose.node import Node
+from vagrantplaybook.errors import ValueGeneratorError, ValueGeneratorTypeError
+from vagrantplaybook.compose.node import Node
 
 class NodeGroup:
     '''

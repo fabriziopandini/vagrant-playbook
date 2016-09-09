@@ -1,4 +1,3 @@
-# vagrant-playbook
 Declarative cluster definition for vagrant, to be used with vagrant-compose plugin.
 
 vagrant-compose is a vagrant plugin, that can be used for creating complex multi-machine scenarios including several set of nodes/virtual machines, each one with different characteristic, software stacks and configuration.
@@ -7,4 +6,4 @@ The DSL used by vagrant-compose requires some ruby knowledge, because the Vagran
 
 By using vagrant-playbook this issue is mostly addressed because the definition of the cluster is done in yaml, and the ruby programming part within the Vagrantfile is reduced to the minimum.
 
-see https://github.com/fabriziopandini/vagrant-compose for documentation
+see github: https://github.com/fabriziopandini/vagrant-playbook for detailed documentation.

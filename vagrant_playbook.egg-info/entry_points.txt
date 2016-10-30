@@ -1,3 +1,0 @@
-[console_scripts]
-vagrant-playbook = vagrantplaybook.__main__:main
-

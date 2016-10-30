@@ -1,0 +1,7 @@
+ansible
+
+[test]
+nose
+
+[dev]
+nose

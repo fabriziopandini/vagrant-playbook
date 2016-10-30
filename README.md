@@ -1,4 +1,7 @@
 # vagrant-playbook
+
+**Alpha**
+
 Declarative cluster definition for vagrant, to be used with vagrant-compose plugin.
 
 vagrant-compose is a vagrant plugin, that can be used for creating complex multi-machine scenarios including several set of nodes/virtual machines, each one with different characteristic, software stacks and configuration.

@@ -1,5 +1,5 @@
 from __future__ import (absolute_import, division, print_function)
-__metaclass__ = type
+__metaclass__ = type 
 
 class ComposeError(Exception):
     ''' Base class for exceptions in this module. '''

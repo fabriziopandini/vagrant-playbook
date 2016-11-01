@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
-
+ 
 class Node:
     '''
     This class defines a node throught a set of setting to be used when creating vagrant machines in the cluster.

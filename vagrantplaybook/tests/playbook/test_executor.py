@@ -71,14 +71,16 @@ class TestExecutor(TestCase):
         self.assertEqual(cluster._node_groups["zookeeper"].instances, 3)
 
     def _test_compose(self, data):
-        return self._executor._compose(self._test_parse(data))
+        cluster = self._test_parse(data)
+        nodes, inventory, ansible_group_vars, ansible_host_vars = self._executor._compose(cluster)
+        return cluster, nodes, inventory, ansible_group_vars, ansible_host_vars
 
     def test_compose(self):
         return #no tests on compose (it is only a wrapper on cluster compose)
 
     def _test_yaml(self, data):
-        clustername, nodes, inventory, ansible_group_vars, ansible_host_vars = self._test_compose(data)
-        return self._executor._yaml(clustername, nodes, inventory, ansible_group_vars, ansible_host_vars)
+        cluster, nodes, inventory, ansible_group_vars, ansible_host_vars = self._test_compose(data)
+        return self._executor._yaml(cluster, nodes, inventory, ansible_group_vars, ansible_host_vars)
 
     def test_yaml(self):
         yaml =  self._test_yaml(sample_yaml)

@@ -1,5 +1,5 @@
 from __future__ import (absolute_import, division, print_function)
-__metaclass__ = type
+__metaclass__ = type 
 
 #TODO: remove dependencies from ansible (use default json library + ninja2)
 from ansible.utils.unicode import to_str

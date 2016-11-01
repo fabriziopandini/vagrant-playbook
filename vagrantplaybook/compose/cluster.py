@@ -38,6 +38,13 @@ class Cluster:
         # It will be used for computing nodes fqdn.
         self.domain = 'vagrant'
 
+        # A prefix to be added before each node name / box name
+        self.node_prefix = ''
+
+        # The root path for ansible playbook; it is used as a base path for computing ansible_group_vars and ansible_host_vars
+        # It defaults to current directory/provisioning
+        self.ansible_playbook_path = os.path.join(os.getcwd(), 'provisioning')
+
         # A dictionary, that will be used to store context vars to be passed
         #  to value_generators when composing nodes
         self.ansible_context_vars = {}
@@ -68,9 +75,10 @@ class Cluster:
             name = name,
             instances = instances,
             box = self.box,
-            boxname = "{{group_name}}{{node_index + 1}}",
-            hostname = "{{group_name}}{{node_index + 1}}",
-            aliases = "",
+            boxname = "{% if cluster_node_prefix %}{{cluster_node_prefix}}-{% endif %}{{group_name}}{{node_index + 1}}",
+            hostname = "{{boxname}}",
+            fqdn = "{{hostname}}{% if cluster_domain %}.{{cluster_domain}}{% endif %}",
+            aliases = [],
             ip = "172.31.{{group_index}}.{{100 + node_index + 1}}",
             cpus = 1,
             memory = 256,
@@ -101,19 +109,16 @@ class Cluster:
         ## Phase4: Creates ansible_inventory
         inventory = self._get_ansible_inventory(ansible_groups)
 
-        return self._get_nodesmap(nodes), inventory, ansible_group_vars, ansible_host_vars
+        return nodes, inventory, ansible_group_vars, ansible_host_vars
 
     def __setattr__(self, name, value):
-        if name.startswith("_"):
-            self.__dict__[name] = value
-            return
 
         #TODO: improve/centralize validation
         if name in ['name']:
             if not (isinstance(value, compat_string_types) or value is None) :
                 raise TypeError("Attribute '%s' accepts only string values or empty." % (name))
 
-        elif name in ['box', 'domain']:
+        elif name in ['box', 'domain', 'node_prefix', 'ansible_playbook_path']:
 
             if not isinstance(value, compat_string_types):
                 raise TypeError("Attribute '%s' accepts only string values." % (name))
@@ -134,7 +139,11 @@ class Cluster:
                             if not isinstance(v1, dict):
                                 raise TypeError("Invalid value for attribute '%s'. Check documentation." % (name))
         else:
-            raise AttributeError ("Attribute '%s' does't exists" % (name))
+            if name.startswith("_"):
+                self.__dict__[name] = value
+                return
+            else:
+                raise AttributeError ("Attribute '%s' does't exists" % (name))
 
         self.__dict__[name] = value
 
@@ -143,31 +152,9 @@ class Cluster:
 
         nodes = []
         for key, group in self._node_groups.iteritems():
-            nodes.extend(group.compose(self._ansible_templar, self.name, self.domain, len(nodes) ))
+            nodes.extend(group.compose(self._ansible_templar, self.name, self.node_prefix, self.domain, len(nodes) ))
 
         return nodes
-
-    def _get_nodesmap(self, nodes):
-        '''Gets the list of nodes as a map format.'''
-
-        nodesmap = []
-        for node in nodes:
-            nodesmap.append ({ node.boxname: {
-                'box'            : node.box,
-                'boxname'        : node.boxname,
-                'hostname'       : node.hostname,
-                'fqdn'           : node.fqdn,
-                'aliases'        : node.aliases,
-                'ip'             : node.ip,
-                'cpus'           : node.cpus,
-                'memory'         : node.memory,
-                'ansible_groups' : node.ansible_groups,
-                'attributes'     : node.attributes,
-                'index'          : node.index,
-                'group_index'    : node.group_index
-            }})
-
-        return nodesmap
 
     def _get_ansible_groups(self, nodes):
         '''Gets the ansible groups, each with its own list of nodes.
@@ -197,7 +184,7 @@ class Cluster:
         inventory = {}
         for ansible_group, ansible_group_nodes in ansible_groups.iteritems():
             if ansible_group not in inventory:
-                inventory[ansible_group] = [node.hostname for node in ansible_group_nodes]
+                inventory[ansible_group] = [dict( boxname=node.boxname, hostname=node.hostname) for node in ansible_group_nodes]
 
         return inventory
 
@@ -221,7 +208,6 @@ class Cluster:
 
                     # set the variables available within the ninja context for value generation
                     self._ansible_templar.set_available_variables(dict(
-                        context = context_vars,
                         nodes = ansible_group_nodes
                     ))
 

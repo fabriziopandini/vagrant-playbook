@@ -208,7 +208,6 @@ class Cluster:
 
                     # set the variables available within the ninja context for value generation
                     self._ansible_templar.set_available_variables(dict(
-                        context = context_vars,
                         nodes = ansible_group_nodes
                     ))
 

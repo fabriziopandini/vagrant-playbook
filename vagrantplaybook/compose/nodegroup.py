@@ -18,7 +18,7 @@ class NodeGroup:
     of the group of node itself.
     '''
 
-    def __init__(self, index, name, instances, box, boxname, hostname, aliases, ip, cpus, memory, ansible_groups, attributes):
+    def __init__(self, index, name, instances, box, boxname, hostname, fqdn, aliases, ip, cpus, memory, ansible_groups, attributes):
         '''Creates a new NodeGroup.
 
         Keyword arguments:
@@ -28,6 +28,7 @@ class NodeGroup:
         box             -- The value/value generator to be used for assigning to each node in this group a base box to be used for creating vagrant machines implementing nodes in this group.
         boxname         -- The value/value generator to be used for assigning to each node in this group a box name a.k.a. the name for the machine in VirtualBox/VMware console.
         hostname        -- The value/value generator to be used for assigning to each node in this group a unique hostname.
+        fqdn            -- The value/value generator to be used for assigning to each node in this group a unique fqdn.
         aliases         -- The value/value generator to be used for assigning to each node in this group a unique list of aliases a.k.a. (comma separated list of alias) alternative host names.
         ip              -- The value/value generator to be used for assigning to each node in this groupa unique ip.
         cpus            -- The value/value generator to be used for assigning to each node in this group cpus.
@@ -42,6 +43,7 @@ class NodeGroup:
         self.box            = box
         self.boxname        = boxname
         self.hostname       = hostname
+        self.fqdn           = fqdn
         self.aliases        = aliases
         self.ip             = ip
         self.cpus           = cpus
@@ -49,7 +51,7 @@ class NodeGroup:
         self.ansible_groups = ansible_groups
         self.attributes     = attributes
 
-    def compose(self, templar, cluster_name, cluster_domain, cluster_offset):
+    def compose(self, templar, cluster_name, cluster_node_prefix, cluster_domain, cluster_offset):
         ''' Composes the group of nodes, by creating the required number of nodes in accordance with values/value generators.
 
         Additionally:
@@ -60,79 +62,71 @@ class NodeGroup:
           * fqdn (hostname + cluster_domain, if defined)
 
         Keyword arguments:
-        cluster_name    -- The name of the cluster
-        cluster_domain  -- The domain to which the cluster belongs
-        cluster_offset  -- The offset - the initial group_index - to be used for nodes in the nodegroup
+        cluster_name        -- The name of the cluster
+        cluster_node_prefix -- A prefix to be added before each node name / box name
+        cluster_domain      -- The domain to which the cluster belongs
+        cluster_offset      -- The offset - the initial group_index - to be used for nodes in the nodegroup
         '''
 
         node_index = 0
         while node_index < self.instances:
-          box            = self._generate(templar, 'box', self.box, node_index)
-          boxname        = self._maybe_prefix(cluster_name, self._generate(templar, 'boxname', self.boxname, node_index))
-          hostname       = self._maybe_prefix(cluster_name, self._generate(templar, 'hostname', self.hostname, node_index))
-          aliases        = ','.join(self._generate(templar, 'aliases', self.aliases, node_index))
-          fqdn           = hostname if not cluster_domain else "{}.{}".format(hostname, cluster_domain)
-          ip             = self._generate(templar, 'ip', self.ip, node_index)
-          cpus           = self._generate(templar, 'cpus', self.cpus, node_index, type = compat_integer_types)
-          memory         = self._generate(templar, 'memory', self.memory, node_index, type = compat_integer_types)
-          ansible_groups = self._generate(templar, 'ansible_groups', self.ansible_groups, node_index)
-          attributes     = self._generate(templar, 'attributes', self.attributes, node_index)
+
+          available_variables = dict(
+            cluster_name = cluster_name,
+            cluster_node_prefix = cluster_node_prefix,
+            cluster_domain = cluster_domain,
+            group_index = self.index,
+            group_name = self.name,
+            node_index = node_index 
+          )
+
+          box, available_variables            = self._generate(templar, 'box', self.box, available_variables)
+          boxname, available_variables        = self._generate(templar, 'boxname', self.boxname, available_variables)
+          hostname, available_variables       = self._generate(templar, 'hostname', self.hostname, available_variables)
+          aliases, available_variables        = self._generate(templar, 'aliases', self.aliases, available_variables)
+          fqdn, available_variables           = self._generate(templar, 'fqdn', self.fqdn, available_variables) 
+          ip, available_variables             = self._generate(templar, 'ip', self.ip, available_variables)
+          cpus, available_variables           = self._generate(templar, 'cpus', self.cpus, available_variables, type = compat_integer_types)
+          memory, available_variables         = self._generate(templar, 'memory', self.memory, available_variables, type = compat_integer_types)
+          ansible_groups, available_variables = self._generate(templar, 'ansible_groups', self.ansible_groups, available_variables)
+          attributes, available_variables     = self._generate(templar, 'attributes', self.attributes, available_variables)
 
           yield Node(box, boxname, hostname, fqdn, aliases, ip, cpus, memory, ansible_groups, attributes, cluster_offset + node_index, node_index)
 
           node_index += 1
 
     def __setattr__(self, name, value):
-        if name.startswith("_"):
-            self.__dict__[name] = value
-            return
-
         #TODO: attribute type validation
-
         self.__dict__[name] = value
 
-    def _maybe_prefix(self, cluster_name, name):
-        ''' utility function for concatenating cluster name (if present) to boxname/hostname.
-
-        Keyword arguments:
-        cluster_name    -- Name of the cluster
-        name            -- Boxname or hostname of the node
-        '''
-
-        if cluster_name:
-            return "{}-{}".format(cluster_name, name)
-        else:
-            return name
-
-    def _generate(self, ansible_templar, var, generator, node_index, type = NoneType):
+    def _generate(self, ansible_templar, var, generator, available_variables, type = NoneType):
         ''' utility function for resolving value/value generators
 
         Keyword arguments:
-        ansible_templar --  The ansible templar engine
-        var             --  The name of the var to be generated
-        generator       --  The value generator expression (a ninja template managed by ansible; can be also a literal)
-        node_index      --  The node index
-        type            --  The expected type for the generated value
+        ansible_templar      --  The ansible templar engine
+        var                  --  The name of the var to be generated
+        generator            --  The value generator expression (a ninja template managed by ansible; can be also a literal)
+        available_variables  --  Variables available within the execution context of the generator expression
+        type                 --  The expected type for the generated value
         '''
 
         # set the variables available within the ninja context for value generation
-        ansible_templar.set_available_variables(dict(
-            group_index = self.index,
-            group_name = self.name,
-            node_index = node_index
-        ))
+        ansible_templar.set_available_variables(available_variables)
 
         # generates the values (or simple keeps the given value)
         try:
             value = ansible_templar.template(generator)
         except Exception, e:
-            raise ValueGeneratorError(self.name, node_index, var, e.message), None, sys.exc_info()[2]
+            raise ValueGeneratorError(self.name, available_variables['node_index'], var, e.message), None, sys.exc_info()[2]
 
         # checks the generated value matches the expected type
         try:
             if type == compat_integer_types:
                 value = int(value)
         except Exception, e:
-            raise ValueGeneratorTypeError(self.name, node_index, var, e.message)
+            raise ValueGeneratorTypeError(self.name, available_variables['node_index'], var, e.message)
 
-        return ansible_unwrap(value)
+        value = ansible_unwrap(value)
+        available_variables[var] = value
+
+        return value, available_variables

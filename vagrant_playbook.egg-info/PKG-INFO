@@ -1,6 +1,6 @@
 Metadata-Version: 1.1
 Name: vagrant-playbook
-Version: 0.9.0
+Version: 0.7.0
 Summary: Declarative cluster definition for vagrant, to be used with vagrant-compose plugin.
 Home-page: https://github.com/fabriziopandini/vagrant-playbook
 Author: Fabrizio Pandini

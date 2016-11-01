@@ -16,6 +16,7 @@ class TestCluster(TestCase):
     def setUp(self):
         dataloader = ansible_loader()
         self.myCluster = Cluster("myCluster", loader = dataloader)
+        self.myCluster.node_prefix = "myCluster"
 
         g1 = self.myCluster.add_node_group("nodegroup_1", 1)
         g1.ansible_groups = ["ansiblegroup_A", "ansiblegroup_B"]
@@ -39,9 +40,10 @@ class TestCluster(TestCase):
         self.assertEqual(self.myCluster._node_groups["nodegroup_1"].name, "nodegroup_1")
         self.assertEqual(self.myCluster._node_groups["nodegroup_1"].instances, 1)
         self.assertEqual(self.myCluster._node_groups["nodegroup_1"].box, self.myCluster.box)
-        self.assertEqual(self.myCluster._node_groups["nodegroup_1"].boxname, "{{group_name}}{{node_index + 1}}")
-        self.assertEqual(self.myCluster._node_groups["nodegroup_1"].hostname, "{{group_name}}{{node_index + 1}}")
-        self.assertEqual(self.myCluster._node_groups["nodegroup_1"].aliases, "")
+        self.assertEqual(self.myCluster._node_groups["nodegroup_1"].boxname, "{% if cluster_node_prefix %}{{cluster_node_prefix}}-{% endif %}{{group_name}}{{node_index + 1}}")
+        self.assertEqual(self.myCluster._node_groups["nodegroup_1"].hostname, "{{boxname}}")
+        self.assertEqual(self.myCluster._node_groups["nodegroup_1"].fqdn, "{{hostname}}{% if cluster_domain %}.{{cluster_domain}}{% endif %}")
+        self.assertEqual(self.myCluster._node_groups["nodegroup_1"].aliases, [])
         self.assertEqual(self.myCluster._node_groups["nodegroup_1"].ip, "172.31.{{group_index}}.{{100 + node_index + 1}}")
         self.assertEqual(self.myCluster._node_groups["nodegroup_1"].cpus, 1)
         self.assertEqual(self.myCluster._node_groups["nodegroup_1"].memory, 256)
@@ -52,9 +54,10 @@ class TestCluster(TestCase):
         self.assertEqual(self.myCluster._node_groups["nodegroup_2"].name, "nodegroup_2")
         self.assertEqual(self.myCluster._node_groups["nodegroup_2"].instances, 2)
         self.assertEqual(self.myCluster._node_groups["nodegroup_2"].box, self.myCluster.box)
-        self.assertEqual(self.myCluster._node_groups["nodegroup_2"].boxname, "{{group_name}}{{node_index + 1}}")
-        self.assertEqual(self.myCluster._node_groups["nodegroup_2"].hostname, "{{group_name}}{{node_index + 1}}")
-        self.assertEqual(self.myCluster._node_groups["nodegroup_2"].aliases, "")
+        self.assertEqual(self.myCluster._node_groups["nodegroup_2"].boxname, "{% if cluster_node_prefix %}{{cluster_node_prefix}}-{% endif %}{{group_name}}{{node_index + 1}}")
+        self.assertEqual(self.myCluster._node_groups["nodegroup_2"].hostname, "{{boxname}}")
+        self.assertEqual(self.myCluster._node_groups["nodegroup_2"].fqdn, "{{hostname}}{% if cluster_domain %}.{{cluster_domain}}{% endif %}")
+        self.assertEqual(self.myCluster._node_groups["nodegroup_2"].aliases, [])
         self.assertEqual(self.myCluster._node_groups["nodegroup_2"].ip, "172.31.{{group_index}}.{{100 + node_index + 1}}")
         self.assertEqual(self.myCluster._node_groups["nodegroup_2"].cpus, 1)
         self.assertEqual(self.myCluster._node_groups["nodegroup_2"].memory, 256)
@@ -81,14 +84,14 @@ class TestCluster(TestCase):
         # ansiblegroup_A (with related nodes)
         self.assertIn("ansiblegroup_A", inventory)
         self.assertEqual(len(inventory["ansiblegroup_A"]), 1)
-        self.assertIn("myCluster-nodegroup_11", inventory["ansiblegroup_A"])
+        self.assertIn("myCluster-nodegroup_11", map(lambda x: x['hostname'], inventory["ansiblegroup_A"]))
 
         # ansiblegroup_B (with related nodes)
         self.assertIn("ansiblegroup_B", inventory)
         self.assertEqual(len(inventory["ansiblegroup_B"]), 3)
-        self.assertIn("myCluster-nodegroup_11", inventory["ansiblegroup_B"])
-        self.assertIn("myCluster-nodegroup_21", inventory["ansiblegroup_B"])
-        self.assertIn("myCluster-nodegroup_22", inventory["ansiblegroup_B"])
+        self.assertIn("myCluster-nodegroup_11", map(lambda x: x['hostname'],inventory["ansiblegroup_B"]))
+        self.assertIn("myCluster-nodegroup_21", map(lambda x: x['hostname'],inventory["ansiblegroup_B"]))
+        self.assertIn("myCluster-nodegroup_22", map(lambda x: x['hostname'],inventory["ansiblegroup_B"]))
 
     def test_get_ansible_groups(self):
         '''_get_ansible_groups re-arrange nodes into ansible_groups'''

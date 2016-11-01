@@ -1,5 +1,5 @@
 from setuptools import setup, find_packages
-# To use a consistent encoding
+# To use a consistent encoding 
 from codecs import open
 from os import path
 
@@ -15,7 +15,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.9.0',
+    version='0.7.0',
 
     description='Declarative cluster definition for vagrant, to be used with vagrant-compose plugin.',
     long_description=long_description,

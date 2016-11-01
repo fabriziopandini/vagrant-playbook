@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import (absolute_import, division, print_function)
-__metaclass__ = type
+__metaclass__ = type 
 
 #TODO: remove dependencies from ansible
 from ansible.compat.six import string_types, text_type, integer_types

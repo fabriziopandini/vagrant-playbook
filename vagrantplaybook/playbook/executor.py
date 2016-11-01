@@ -30,10 +30,10 @@ class Executor:
         cluster = self._parse(playbook)
 
         #compose the cluster
-        clustername, nodesmap, inventory, ansible_group_vars, ansible_host_vars = self._compose(cluster)
+        nodes, inventory, ansible_group_vars, ansible_host_vars = self._compose(cluster)
 
         #return the composed cluster in yaml format
-        return self._yaml(clustername, nodesmap, inventory, ansible_group_vars, ansible_host_vars)
+        return self._yaml(cluster, nodes, inventory, ansible_group_vars, ansible_host_vars)
 
     def _load_from_file(self, file_name):
         '''Loads a playbook from a yaml file.
@@ -79,7 +79,8 @@ class Executor:
 
         # Parse the second level of the yaml document (loaded into a dictionary).
         # The second level is either cluster attributes and also
-        #  nodegroups definition
+        #  nodegroups definition; attributes should be managed before nodegroups 
+        #  because some attributes act as default for nodegroups.
         for k2, v2 in v1.iteritems():
             k2 = ansible_unwrap(k2)
             v2 = ansible_unwrap(v2)
@@ -92,10 +93,17 @@ class Executor:
                 except Exception, e:
                     raise PlaybookParseError("Error parsing cluster attributes '%s': %s" % (k1, e.message))
 
-            # Ohterwise the element is a nodegroup
+        # Parse the second level of the yaml document (loaded into a dictionary).
+        # The second level is either cluster attributes and also
+        #  nodegroups definition; nodegroups should be managed after attributes
+        for k2, v2 in v1.iteritems():
+            k2 = ansible_unwrap(k2)
+            v2 = ansible_unwrap(v2)
+
+            # If the element isn't one of cluster attributes sets, the element is a nodegroup.
             # Nb. the DataLoader provides guarantee that keys are unique within an element
             #  and therefore nodegroup name are uniques within a cluster
-            else:
+            if k2 not in self._get_object_attributes(cluster):
                 nodegroup = cluster.add_node_group(k2, 1)
 
                 # if there are attributes for the nodegroup
@@ -126,20 +134,41 @@ class Executor:
         except Exception, e:
             raise PlaybookCompileError(cluster.name, e.message), None, sys.exc_info()[2]
 
-        return cluster.name, nodesmap, inventory, ansible_group_vars, ansible_host_vars
+        return nodesmap, inventory, ansible_group_vars, ansible_host_vars
 
-    def _yaml(self, clustername, nodesmap, inventory, ansible_group_vars, ansible_host_vars):
+    def _yaml(self, cluster, nodes, inventory, ansible_group_vars, ansible_host_vars):
         '''Transform a set of objects representing the composed cluster into a yaml cluster specification.
 
         Keyword arguments:
-        clustername            -- Name of the cluster
-        nodesmap               -- List of nodes in the cluster (in map format)
+        cluster                -- The cluster object
+        nodes                  -- List of nodes in the cluster 
         inventory              -- Ansible inventory  - linking ansible groups and hosts
         ansible_group_vars     -- Ansible group vars - grouped by ansible groups
         ansible_host_vars      -- Ansible host vars - grouped by hosts
         '''
+        
+        nodesmap = []
+        for node in nodes:
+            nodesmap.append ({ node.boxname: {
+                'box'            : node.box,
+                'boxname'        : node.boxname,
+                'hostname'       : node.hostname,
+                'fqdn'           : node.fqdn,
+                'aliases'        : node.aliases,
+                'ip'             : node.ip,
+                'cpus'           : node.cpus,
+                'memory'         : node.memory,
+                'ansible_groups' : node.ansible_groups,
+                'attributes'     : node.attributes,
+                'index'          : node.index,
+                'group_index'    : node.group_index
+            }})
+
         yamlmap = {
-            clustername : {
+            cluster.name : {
+                'box' : cluster.box,
+                'domain' : cluster.domain,
+                'ansible_playbook_path' : cluster.ansible_playbook_path,
                 'nodes' : nodesmap
             }
         }
@@ -155,7 +184,7 @@ class Executor:
             if len(ansible_host_vars)>0:
                 ansiblemap['host_vars'] = ansible_host_vars
 
-            yamlmap[clustername]['ansible'] = ansiblemap
+            yamlmap[cluster.name]['ansible'] = ansiblemap
 
         return yaml.dump(yamlmap, default_flow_style=False)
 

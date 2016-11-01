@@ -1,7 +1,7 @@
 import sys
 from optparse import OptionParser
 
-def main(args=None):
+def main(args=None): 
     """The main routine."""
     if args is None:
         args = sys.argv[1:]

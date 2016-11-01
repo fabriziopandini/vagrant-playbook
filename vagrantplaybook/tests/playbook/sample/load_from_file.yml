@@ -1,4 +1,4 @@
----
+--- 
 mesos:
   box: fp/centos7
   master:

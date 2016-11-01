@@ -20,8 +20,9 @@ class TestNodeGroup(TestCase):
             name = "mygroup",
             instances = 3,
             box = "mybox",
-            boxname = "{{group_name}}{{node_index + 1}}",
-            hostname = "{{group_name}}{{node_index + 1}}",
+            boxname = "{% if cluster_node_prefix %}{{cluster_node_prefix}}-{% endif %}{{group_name}}{{node_index + 1}}",
+            hostname = "{% if cluster_node_prefix %}{{cluster_node_prefix}}-{% endif %}{{group_name}}{{node_index + 1}}",
+            fqdn = "{% if cluster_node_prefix %}{{cluster_node_prefix}}-{% endif %}{{group_name}}{{node_index + 1}}{% if cluster_domain %}.{{cluster_domain}}{% endif %}",
             aliases = ["a1", "a2"],
             ip = "172.31.{{group_index}}.{{100 + node_index + 1}}",
             cpus = 1,
@@ -38,47 +39,46 @@ class TestNodeGroup(TestCase):
         #TODO: test validation
         pass
 
-    def test_maybeprefix(self):
-        # none or empty cluster names does not prefix
-        self.assertEqual(self.ng._maybe_prefix(None, "mygroup"), "mygroup")
-        self.assertEqual(self.ng._maybe_prefix("", "mygroup"), "mygroup")
-        # any cluster (not none/empty) name do prefix
-        self.assertEqual(self.ng._maybe_prefix("mycluster", "mygroup"), "mycluster-mygroup")
-
     def test_unwrap(self):
         # TODO: test unwrapping
         pass
 
     def test_generate(self):
         # generate preserve literal values
-        self.assertEqual(self.ng._generate(self.templar, "myVar", 1, 0), 1)
-        self.assertEqual(self.ng._generate(self.templar, "myVar", 1.1, 0), 1.1)
-        self.assertEqual(self.ng._generate(self.templar, "myVar", "s", 0), "s")
-        self.assertEqual(self.ng._generate(self.templar, "myVar", [], 0), [])
-        self.assertEqual(self.ng._generate(self.templar, "myVar", {}, 0), {})
+        self.assertEqual(self.ng._generate(self.templar, "myVar", 1, dict())[0], 1)
+        self.assertEqual(self.ng._generate(self.templar, "myVar", 1.1, dict())[0], 1.1)
+        self.assertEqual(self.ng._generate(self.templar, "myVar", "s", dict())[0], "s")
+        self.assertEqual(self.ng._generate(self.templar, "myVar", [], dict())[0], [])
+        self.assertEqual(self.ng._generate(self.templar, "myVar", {}, dict())[0], {})
 
         # generate resolve vars in context for value generation
-        self.assertEqual(self.ng._generate(self.templar, "myVar", "{{group_name}}", 0), "mygroup")
-        self.assertEqual(self.ng._generate(self.templar, "myVar", "{{group_index}}", 0), 1)
-        self.assertEqual(self.ng._generate(self.templar, "myVar", "{{node_index}}", 0), 0)
+        self.assertEqual(self.ng._generate(self.templar, "myVar", "{{group_name}}", dict(group_name="mygroup"))[0], "mygroup")
+        self.assertEqual(self.ng._generate(self.templar, "myVar", "{{group_index}}", dict(group_index=1))[0], 1)
+        self.assertEqual(self.ng._generate(self.templar, "myVar", "{{node_index}}", dict(node_index=0))[0], 0)
+
+        # generate popolate dict
+        available_variables = self.ng._generate(self.templar, "myVar", 1, dict())[1]
+
+        self.assertIn("myVar", available_variables)
+        self.assertEqual(available_variables["myVar"], 1)
 
         # generate raise errors on invalid template
-        self.assertRaises(ValueGeneratorError, self.ng._generate, self.templar, "myVar", "{{unknown_var}}", 0)
+        self.assertRaises(ValueGeneratorError, self.ng._generate, self.templar, "myVar", "{{unknown_var}}", dict(node_index=0))
 
         # generate raise errors when generated value does not match expected type
-        self.assertRaises(ValueGeneratorTypeError, self.ng._generate, self.templar, "myVar", "s", 0, type = compat_integer_types)
+        self.assertRaises(ValueGeneratorTypeError, self.ng._generate, self.templar, "myVar", "s", dict(node_index=0), type = compat_integer_types)
 
     def test_compose(self):
         #compose generates expected nodes (and generates all attributes values)
-        nodes = list(self.ng.compose(self.templar, "mycluster", "mydomain", 10))
+        nodes = list(self.ng.compose(self.templar, "mycluster", "myprefix", "mydomain", 10))
 
         self.assertEqual(len(nodes), 3)
 
         self.assertEqual(nodes[0].box, "mybox")
-        self.assertEqual(nodes[0].boxname, "mycluster-mygroup1")
-        self.assertEqual(nodes[0].hostname, "mycluster-mygroup1")
-        self.assertEqual(nodes[0].fqdn, "mycluster-mygroup1.mydomain")
-        self.assertEqual(nodes[0].aliases, "a1,a2")
+        self.assertEqual(nodes[0].boxname, "myprefix-mygroup1")
+        self.assertEqual(nodes[0].hostname, "myprefix-mygroup1")
+        self.assertEqual(nodes[0].fqdn, "myprefix-mygroup1.mydomain")
+        self.assertEqual(nodes[0].aliases, ['a1', 'a2'])
         self.assertEqual(nodes[0].ip, "172.31.1.101")
         self.assertEqual(nodes[0].cpus, 1)
         self.assertEqual(nodes[0].memory, 256)
@@ -88,10 +88,10 @@ class TestNodeGroup(TestCase):
         self.assertEqual(nodes[0].group_index, 0)
 
         self.assertEqual(nodes[1].box, "mybox")
-        self.assertEqual(nodes[1].boxname, "mycluster-mygroup2")
-        self.assertEqual(nodes[1].hostname, "mycluster-mygroup2")
-        self.assertEqual(nodes[1].fqdn, "mycluster-mygroup2.mydomain")
-        self.assertEqual(nodes[1].aliases, "a1,a2")
+        self.assertEqual(nodes[1].boxname, "myprefix-mygroup2")
+        self.assertEqual(nodes[1].hostname, "myprefix-mygroup2")
+        self.assertEqual(nodes[1].fqdn, "myprefix-mygroup2.mydomain")
+        self.assertEqual(nodes[1].aliases, ['a1', 'a2'])
         self.assertEqual(nodes[1].ip, "172.31.1.102")
         self.assertEqual(nodes[1].cpus, 1)
         self.assertEqual(nodes[1].memory, 256)
@@ -101,10 +101,10 @@ class TestNodeGroup(TestCase):
         self.assertEqual(nodes[1].group_index, 1)
 
         self.assertEqual(nodes[2].box, "mybox")
-        self.assertEqual(nodes[2].boxname, "mycluster-mygroup3")
-        self.assertEqual(nodes[2].hostname, "mycluster-mygroup3")
-        self.assertEqual(nodes[2].fqdn, "mycluster-mygroup3.mydomain")
-        self.assertEqual(nodes[2].aliases, "a1,a2")
+        self.assertEqual(nodes[2].boxname, "myprefix-mygroup3")
+        self.assertEqual(nodes[2].hostname, "myprefix-mygroup3")
+        self.assertEqual(nodes[2].fqdn, "myprefix-mygroup3.mydomain")
+        self.assertEqual(nodes[2].aliases, ['a1', 'a2'])
         self.assertEqual(nodes[2].ip, "172.31.1.103")
         self.assertEqual(nodes[2].cpus, 1)
         self.assertEqual(nodes[2].memory, 256)

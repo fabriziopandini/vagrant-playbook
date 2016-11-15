@@ -82,7 +82,7 @@ class TestExecutor(TestCase):
         cluster, nodes, inventory, ansible_group_vars, ansible_host_vars = self._test_compose(data)
         return self._executor._yaml(cluster, nodes, inventory, ansible_group_vars, ansible_host_vars)
 
-    def test_yaml(self):
-        yaml =  self._test_yaml(sample_yaml)
+    #def test_yaml(self):
+    #    yaml =  self._test_yaml(sample_yaml)
 
-        print(yaml)
+    #    print(yaml)

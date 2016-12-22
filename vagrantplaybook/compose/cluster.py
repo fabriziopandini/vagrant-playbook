@@ -96,13 +96,13 @@ class Cluster:
 
         ## Phase2: Creates inventory for Ansible provisioning
         # Create a list of ansible_groups, with related nodes
-        ansible_groups = self._get_ansible_groups(nodes)
+        ansible_groups, extended_ansible_groups = self._get_ansible_groups(nodes)
 
         ## Phase3: Creates ansible_group_vars and ansible_host_vars file
         # context_vars are variables shared between all groups/hosts generators.
-        context_vars = self._get_context_vars(ansible_groups)
+        context_vars = self._get_context_vars(extended_ansible_groups)
         # generate ansible_group_vars
-        ansible_group_vars = self._get_ansible_group_vars(ansible_groups, context_vars)
+        ansible_group_vars = self._get_ansible_group_vars(extended_ansible_groups, context_vars)
         # generate ansible_host_vars
         ansible_host_vars = self._get_ansible_host_vars(nodes, context_vars)
 
@@ -172,7 +172,10 @@ class Cluster:
 
                 ansible_groups[ansible_group].append(node)
 
-        return ansible_groups
+        extended_ansible_groups = ansible_groups.copy()
+        extended_ansible_groups['all'] = nodes
+
+        return ansible_groups, extended_ansible_groups
 
     def _get_ansible_inventory(self, ansible_groups):
         '''Gets the ansible to be used when provisioning VMs with vagrant/ansible.

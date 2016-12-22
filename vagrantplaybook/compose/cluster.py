@@ -173,7 +173,7 @@ class Cluster:
                 ansible_groups[ansible_group].append(node)
 
         extended_ansible_groups = ansible_groups.copy()
-        extended_ansible_groups['all_groups:children'] = nodes
+        extended_ansible_groups['all'] = nodes
 
         return ansible_groups, extended_ansible_groups
 

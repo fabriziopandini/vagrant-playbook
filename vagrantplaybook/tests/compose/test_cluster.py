@@ -115,8 +115,8 @@ class TestCluster(TestCase):
 
         # "all_groups:children" (with related nodes) only in extended_ansible_groups
         self.assertEqual(len(self.extended_ansible_groups), 3)
-        self.assertIn("all_groups:children", self.extended_ansible_groups)
-        hostnames = [n.hostname for n in self.extended_ansible_groups["all_groups:children"]]
+        self.assertIn("all", self.extended_ansible_groups)
+        hostnames = [n.hostname for n in self.extended_ansible_groups["all"]]
         self.assertIn("myCluster-nodegroup_11", hostnames)
         self.assertIn("myCluster-nodegroup_21", hostnames)
         self.assertIn("myCluster-nodegroup_22", hostnames)
@@ -127,7 +127,7 @@ class TestCluster(TestCase):
 
         # defines a sample set of context_vars generators
         self.myCluster.ansible_context_vars = {
-            "all_groups:children" : {
+            "all" : {
                 "var0" : "{{ nodes | count }}"
             },
             "ansiblegroup_A" : {
@@ -154,7 +154,7 @@ class TestCluster(TestCase):
 
         # defines a sample set of ansible_group_vars generators
         self.myCluster.ansible_group_vars = {
-            "all_groups:children" : {
+            "all" : {
                 "var0" : "{{ nodes | count }}"
             },
             "ansiblegroup_A" : {
@@ -171,8 +171,8 @@ class TestCluster(TestCase):
         # assert expected ansible_group_vars are available
         self.assertEqual(len(group_vars), 3)
 
-        self.assertEqual(len(group_vars["all_groups:children"]), 1)
-        self.assertEqual(group_vars["all_groups:children"]["var0"], "3")
+        self.assertEqual(len(group_vars["all"]), 1)
+        self.assertEqual(group_vars["all"]["var0"], "3")
 
         self.assertEqual(len(group_vars["ansiblegroup_A"]), 1)
         self.assertEqual(group_vars["ansiblegroup_A"]["var1"], "1")

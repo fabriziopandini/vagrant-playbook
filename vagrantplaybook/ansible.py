@@ -3,13 +3,13 @@ __metaclass__ = type
 
 #TODO: remove dependencies from ansible (use default json library + ninja2)
 from ansible.utils.unicode import to_str
-from ansible.template import Templar
 from ansible.parsing.dataloader import DataLoader
-
 from vagrantplaybook.compat import compat_text_type
+from ansible.template import Templar
 
 ansible_tempar = Templar
 ansible_loader = DataLoader
+
 
 def ansible_unwrap(value):
     ''' utility function for unwrapping values generated

@@ -2,9 +2,11 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type 
 
-#TODO: remove dependencies from ansible
-from ansible.compat.six import string_types, text_type, integer_types
+# this module provides utilities for smoothing over the differences 
+# between Python 2 (currently supported) and 3 (to be supported in future)
+# see https://github.com/benjaminp/six
 
-compat_string_types = string_types
-compat_text_type = text_type
-compat_integer_types = integer_types
+compat_string_types = basestring
+compat_text_type = unicode
+compat_integer_types = (int, long)
+

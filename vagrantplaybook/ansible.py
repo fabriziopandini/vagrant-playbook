@@ -1,10 +1,10 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type 
 
+from vagrantplaybook.compat import compat_text_type, to_str
+
 #TODO: remove dependencies from ansible (use default json library + ninja2)
-from ansible.utils.unicode import to_str
 from ansible.parsing.dataloader import DataLoader
-from vagrantplaybook.compat import compat_text_type
 from ansible.template import Templar
 
 ansible_tempar = Templar
